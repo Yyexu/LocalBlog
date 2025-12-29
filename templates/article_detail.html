@@ -1,0 +1,405 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- 引入 Editor.md 的预览样式 -->
+<link rel="stylesheet" href="{{ url_for('static', filename='editormd/css/editormd.preview.css') }}"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+    /* 页面背景微调 */
+    body {
+        background-color: #f4f7f6;
+    }
+
+    .detail-wrapper {
+        width: 100%;
+        position: relative;
+        padding-top: 40px;
+        padding-bottom: 80px;
+    }
+
+    /* 1. 文章主体：居中，宽度稍微调小到 850px，阅读更舒适 */
+    .article-card {
+        max-width: 850px;
+        margin: 0 auto; /* 严格居中 */
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 50px 60px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.02);
+        position: relative;
+        z-index: 1;
+    }
+
+    /* 2. 悬浮目录：向右大幅度偏移 */
+    .toc-container {
+        position: fixed;
+        top: 120px;
+        /* 定位逻辑：
+           50% 是屏幕中心
+           +425px 是文章宽度的一半
+           +50px 是中间留出的空白间距
+           总计 +475px
+        */
+        left: calc(50% + 500px);
+        width: 250px;
+        background: rgba(255, 255, 255, 0.9); /* 半透明更有呼吸感 */
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        border: 1px solid #eef5f1;
+        max-height: 70vh;
+        overflow-y: auto;
+        z-index: 10;
+        transition: all 0.3s ease;
+    }
+
+    /* 3. 目录列表美化：减少层级缩进，让目录整体更窄 */
+    #toc-placeholder .markdown-toc-list {
+        padding-left: 15px !important;
+        list-style: none !important;
+    }
+
+    #toc-placeholder .markdown-toc-list ul {
+        padding-left: 15px !important;
+        list-style: none !important;
+    }
+
+    #toc-placeholder a {
+        color: #666 !important;
+        font-size: 13px;
+        line-height: 1.8;
+        text-decoration: none !important;
+        display: block;
+        white-space: nowrap; /* 防止目录文字太长换行 */
+        overflow: hidden;
+        text-overflow: ellipsis; /* 文字太长显示省略号 */
+    }
+
+    #toc-placeholder a:hover {
+        color: #81c784 !important;
+    }
+
+    /* 4. 响应式补丁：非常重要！ */
+    /* 如果屏幕总宽度小于 (文章850 + 目录250 + 间距100) = 1200px 时，隐藏目录 */
+    @media (max-width: 1350px) {
+        .toc-container {
+            display: none;
+        }
+    }
+
+    /* 原有样式保持 */
+    .article-header {
+        text-align: left;
+        margin-bottom: 30px;
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 20px;
+    }
+
+    .article-title {
+        font-size: 38px;
+        font-weight: 800;
+        color: #1a1a1a;
+        margin: 15px 0;
+        line-height: 1.3;
+    }
+
+    .article-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #8c8c8c;
+        font-size: 14px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .article-cover-wrapper {
+        margin: 0 -50px 30px -50px;
+        overflow: hidden;
+    }
+
+    .article-cover {
+        width: 100%;
+        max-height: 450px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .tag-item {
+        background: #f0f5ff;
+        color: #2f54eb;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-right: 8px;
+        border: 1px solid #adc6ff;
+    }
+
+    #content-view {
+        padding: 20px 0;
+        font-size: 16px;
+        line-height: 1.8;
+        color: #333;
+    }
+
+    .back-btn-area {
+        margin-top: 40px;
+        text-align: center;
+    }
+
+    .tool-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #f1f8e9;
+        color: #2e7d32;
+        border: 1px solid #c8e6c9;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        height: 24px;
+    }
+
+    .tool-btn:hover {
+        background: #81c784;
+        color: white;
+    }
+
+    .tool-btn-ai {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #f0f7ff;
+        color: #1976d2;
+        border: 1px solid #c2e0ff;
+        padding: 2px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 24px;
+    }
+
+    .tool-btn-ai.active {
+        background: #1976d2 !important;
+        color: white !important;
+    }
+</style>
+
+<div class="detail-wrapper">
+    <!-- 左侧：文章卡片 -->
+    <div class="article-card">
+        <div class="article-header">
+            <div style="margin-bottom: 10px;">
+                {% if article.category %}
+                <a href="{{ url_for('category_filter', user_id=article.author.id, cat_id=article.category.id) }}"
+                   style="text-decoration:none;">
+                    <span style="background:#e6f7ff; color:#1890ff; padding:3px 12px; border-radius:4px; font-size:12px; font-weight:bold; border:1px solid #91d5ff;">{{ article.category.name }}</span>
+                </a>
+                {% else %}
+                <span style="background: #f5f5f5; color: #aaa; padding:3px 12px; border-radius:4px; font-size:12px; border: 1px solid #eee;">无分类</span>
+                {% endif %}
+            </div>
+
+            <h1 class="article-title">{{ article.title }}</h1>
+
+            <div class="article-meta">
+                <img src="{{ article.author.avatar_url }}"
+                     style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                <a href="{{ url_for('public_profile', user_id=article.author.id) }}"
+                   style="color:#444; font-weight:600; text-decoration:none;">
+                    {{ article.author.nickname or article.author.username }}
+                </a>
+
+                <span style="color:#ccc;">|</span>
+                <span>{{ article.update_time.strftime('%Y-%m-%d %H:%M') }}</span>
+                <span style="color:#ccc;">|</span>
+                <span>约 {{ article.word_count }} 字</span>
+                <span style="color:#ccc;">|</span>
+                <span>阅读需 {{ article.read_time }} 分</span>
+                <span style="color:#ccc;">|</span>
+
+                <button onclick="downloadPDF()" class="tool-btn" title="导出为PDF">PDF</button>
+                <button id="tts-btn" onclick="toggleSpeech()" class="tool-btn">朗读</button>
+                <button id="ai-btn" onclick="getAISummary()" class="tool-btn-ai">AI 总结</button>
+            </div>
+
+            <div class="tag-row" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                {% if article.tags %}
+                {% for tag in article.tags %}
+                <a href="{{ url_for('tag_filter', user_id=article.author.id, tag_id=tag.id) }}"
+                   style="text-decoration: none;">
+                    <span class="tag-item">#{{ tag.name }}</span>
+                </a>
+                {% endfor %}
+                {% else %}
+                <span class="tag-item" style="background: #f5f5f5; color: #aaa; border: 1px solid #eee;">#无标签</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="ai-summary-box" style="display:none; margin-bottom: 25px;">
+            <div style="background: #f0f7ff; border: 1px solid #c2e0ff; border-radius: 12px; padding: 20px; position: relative;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #1976d2;">
+                    <div style="background: #1976d2; color: white; width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px;">
+                        AI
+                    </div>
+                    <strong style="font-size: 14px;">DeepSeek 总结</strong>
+                    <span onclick="closeAISummary()" style="margin-left: auto; cursor: pointer;">&times;</span>
+                </div>
+                <div id="ai-text" style="font-size: 14px; line-height: 1.8; color: #444;">正在思考...</div>
+            </div>
+        </div>
+
+        {% if article.cover_url %}
+        <div class="article-cover-wrapper">
+            <img src="{{ article.cover_url }}" class="article-cover">
+        </div>
+        {% endif %}
+
+        <div id="content-view">
+            <textarea style="display:none;">{{ article.content }}</textarea>
+        </div>
+    </div>
+
+    <!-- 右侧：悬浮目录 -->
+    <div class="toc-container">
+        <div class="toc-title">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+            </svg>
+            文章目录
+        </div>
+        <div id="toc-placeholder"></div>
+    </div>
+</div>
+
+<div class="back-btn-area">
+    <a href="{{ url_for('index') }}" class="btn"
+       style="background:#fff; color:#666; border:1px solid #ddd;">返回首页</a>
+</div>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="{{ url_for('static', filename='editormd/lib/marked.min.js') }}"></script>
+<script src="{{ url_for('static', filename='editormd/lib/prettify.min.js') }}"></script>
+<script src="{{ url_for('static', filename='editormd/editormd.min.js') }}"></script>
+
+<script type="text/javascript">
+    let isAILoading = false;
+
+    $(function () {
+        // 初始化 Editor.md 预览并提取目录
+        editormd.markdownToHTML("content-view", {
+            htmlDecode: "style,script,iframe",
+            emoji: true,
+            taskList: true,
+            tex: true,
+            flowChart: true,
+            sequenceDiagram: true,
+            toc: true,                 // 开启目录
+            tocm: true,                // 开启下拉菜单式目录
+            tocContainer: "#toc-placeholder", // 将目录渲染到指定容器
+            tocStartLevel: 1,          // 解析 H1 开始
+        });
+    });
+
+    // AI 总结逻辑
+    function getAISummary() {
+        if (isAILoading) return;
+        const box = document.getElementById('ai-summary-box');
+        const textTarget = document.getElementById('ai-text');
+        const btn = document.getElementById('ai-btn');
+
+        if (box.style.display !== 'none') {
+            closeAISummary();
+            return;
+        }
+
+        $(box).fadeIn();
+        btn.classList.add('active');
+        textTarget.innerHTML = 'AI 正在阅读全文并提炼要点...';
+        isAILoading = true;
+
+        fetch("/api/summarize/{{ article.id }}")
+            .then(res => res.json())
+            .then(data => {
+                isAILoading = false;
+                if (data.success) {
+                    typeWriter(data.summary, 'ai-text');
+                } else {
+                    textTarget.innerHTML = `<span style="color:red;">${data.message}</span>`;
+                }
+            });
+    }
+
+    function closeAISummary() {
+        $('#ai-summary-box').fadeOut();
+        document.getElementById('ai-btn').classList.remove('active');
+    }
+
+    function typeWriter(text, elementId) {
+        let i = 0;
+        const speed = 30;
+        const target = document.getElementById(elementId);
+        target.innerHTML = "";
+
+        function type() {
+            if (i < text.length) {
+                target.innerHTML += text.charAt(i);
+                i++;
+                setTimeout(type, speed);
+            }
+        }
+
+        type();
+    }
+
+    // PDF 下载逻辑
+    function downloadPDF() {
+        const btn = event.currentTarget;
+        btn.innerHTML = "生成中...";
+        const element = document.querySelector('.article-card');
+        const opt = {
+            margin: [10, 10],
+            filename: '{{ article.title }}.pdf',
+            image: {type: 'jpeg', quality: 0.98},
+            html2canvas: {scale: 2, useCORS: true},
+            jsPDF: {unit: 'mm', format: 'a4', orientation: 'portrait'}
+        };
+        html2pdf().set(opt).from(element).save().then(() => {
+            btn.innerHTML = "PDF";
+        });
+    }
+
+    // 语音朗读逻辑
+    let synth = window.speechSynthesis;
+    let isReading = false;
+
+    function toggleSpeech() {
+        const btn = document.getElementById('tts-btn');
+        if (isReading) {
+            synth.cancel();
+            isReading = false;
+            btn.innerText = "朗读";
+        } else {
+            const contentText = document.getElementById('content-view').innerText;
+            let utterance = new SpeechSynthesisUtterance(contentText);
+            utterance.lang = 'zh-CN';
+            utterance.onend = () => {
+                isReading = false;
+                btn.innerText = "朗读";
+            };
+            synth.speak(utterance);
+            isReading = true;
+            btn.innerText = "停止";
+        }
+    }
+</script>
+{% endblock %}

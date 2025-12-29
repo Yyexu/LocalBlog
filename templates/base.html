@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <title>LocalBlog | 本地博客系统</title>
+    <style>
+        /* 1. 重新定义薄荷绿变量 */
+        :root {
+            --nav-green: #f1f8e9; /* 极浅的薄荷绿背景 */
+            --primary-green: #81c784; /* 柔和的叶绿色 */
+            --accent-green: #a5d6a7; /* 辅助浅绿色 */
+            --text-soft: #546e7a; /* 带有灰蓝调的深色，配绿色很高级 */
+            --bg-light: #f9fbf9; /* 整个页面的背景也带一点点绿 */
+        }
+
+        body {
+            background-color: var(--bg-light);
+        }
+
+        /* 2. 导航栏：薄荷绿毛玻璃 */
+        nav {
+            background: rgba(241, 248, 233, 0.8); /* 半透明薄荷绿 */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0 10%;
+            height: 75px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(165, 214, 167, 0.3); /* 浅绿色边框 */
+            box-shadow: 0 4px 20px rgba(129, 199, 132, 0.05); /* 带有绿色的轻微投影 */
+        }
+
+        /* 3. Logo 样式：圆点改为绿色 */
+        .nav-logo {
+            text-decoration: none;
+            color: #37474f !important;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-logo::before {
+            content: '';
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: var(--primary-green); /* 这里改为绿色圆点 */
+            border-radius: 50%;
+            margin-right: 10px;
+            box-shadow: 0 0 8px rgba(129, 199, 132, 0.5);
+        }
+
+        /* 4. 链接样式 */
+        nav a.nav-link {
+            color: var(--text-soft);
+            text-decoration: none;
+            padding: 8px 20px;
+            font-size: 15px;
+            font-weight: 500;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 36px;
+            box-sizing: border-box;
+        }
+
+        /* 2. 悬停效果：淡淡的灰色或浅绿背景 */
+        nav a.nav-link:hover {
+            background: rgba(129, 199, 132, 0.1);
+            color: var(--primary-green);
+        }
+
+        /* 3. 核心修改：当前页面（Active）的样式 */
+        /* 不管是首页还是管理面板，只要是当前页面，就显示为绿色药丸 */
+        nav a.nav-link.active {
+            background: #c8e6c9; /* 浅绿色底 */
+            color: #2e7d32 !important; /* 深绿色文字 */
+            font-weight: 700;
+            border: 1px solid #a5d6a7;
+            box-shadow: 0 2px 8px rgba(129, 199, 132, 0.15);
+        }
+
+        /* 4. 如果你想让“管理面板”即便不是 Active 也稍微有点区别（可选） */
+        /* 比如给它加个淡淡的边框，但不填充颜色 */
+        nav a.nav-link[href*="dashboard"]:not(.active) {
+            border: 1px dashed #a5d6a7;
+            margin-left: 5px;
+        }
+
+
+        /* 主容器 */
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 30px auto;
+        }
+
+        /* 通用卡片样式 */
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        /* 统一输入框美化 */
+        .modern-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 14px;
+            outline: none;
+            transition: 0.3s;
+            background: #fafafa;
+        }
+
+        .modern-input:focus {
+            border-color: var(--primary);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+        }
+
+        /* 按钮 */
+        .btn {
+            background: #81c784; /* 固体叶绿色 */
+            color: white !important; /* 强制白色文字 */
+            border: none;
+            padding: 10px 25px;
+            border-radius: 10px; /* 圆润一点 */
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(129, 199, 132, 0.2); /* 淡淡的绿影 */
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .btn-block {
+            width: 100%;
+            display: block;
+            padding: 12px;
+        }
+
+        .btn:hover {
+            background: #66bb6a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(129, 199, 132, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .search-icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            padding: 0 !important; /* 覆盖 nav-link 的内边距 */
+            color: var(--text-soft) !important;
+            margin-right: 5px;
+        }
+
+        .search-icon-btn:hover {
+            background: rgba(129, 199, 132, 0.2) !important;
+            color: var(--primary-green) !important;
+        }
+
+    </style>
+
+    {% block style %}{% endblock %}
+</head>
+<body>
+<nav>
+    <a href="{{ url_for('index') }}" class="nav-logo">LocalBlog</a>
+
+    <div>
+
+        <a href="{{ url_for('search') }}" class="nav-link search-icon-btn" title="搜索">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </a>
+
+        <!-- 首页链接：如果是 index 路由，就加 active 类 -->
+        <a href="{{ url_for('index') }}"
+           class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">首页</a>
+
+        {% if current_user.is_authenticated %}
+        <!-- 管理面板：如果是 dashboard 路由，就加 active 类 -->
+        <a href="{{ url_for('dashboard') }}"
+           class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">管理面板</a>
+
+        <a href="{{ url_for('logout') }}" class="nav-link">注销</a>
+        {% else %}
+        <a href="{{ url_for('login') }}"
+           class="nav-link {% if request.endpoint == 'login' %}active{% endif %}">登录</a>
+        <a href="{{ url_for('register') }}"
+           class="nav-link {% if request.endpoint == 'register' %}active{% endif %}">注册</a>
+        {% endif %}
+    </div>
+</nav>
+
+<div class="container">
+    <!-- 移除了原有的 flash 文字显示，改为下方的 SweetAlert2 处理 -->
+    {% block content %}{% endblock %}
+</div>
+
+<!-- 引入 SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    // 当页面加载完成时，检查是否有 Flash 消息
+    document.addEventListener('DOMContentLoaded', function () {
+        {%
+            with messages = get_flashed_messages(with_categories = true) %
+        }
+        {%
+            if messages %
+        }
+        {%
+            for category, message in messages %
+        }
+        Swal.fire({
+            icon: '{{ "success" if category == "message" or category == "success" else "error" }}',
+            title: '系统提示',
+            text: '{{ message }}',
+            timer: 2500,
+            showConfirmButton: false,
+            position: 'top-end',
+            toast: true,
+            showClass: {popup: 'animate__animated animate__fadeInRight'},
+            hideClass: {popup: 'animate__animated animate__fadeOutRight'}
+        });
+        {%
+            endfor %
+        }
+        {%
+            endif %
+        }
+        {%
+            endwith %
+        }
+    });
+</script>
+
+</body>
+</html>

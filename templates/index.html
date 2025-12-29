@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block style %}
+<style>
+    /* 专门给首页写的样式 */
+    .tag-link {
+        text-decoration: none !important;
+        display: inline-block;
+        background: transparent !important; /* 强制透明，去掉那个方框 */
+        padding: 0 !important; /* 去掉内边距，防止撑开 */
+    }
+
+    /* 2. 内层药丸：负责所有的美化 */
+    .tag-item {
+        display: inline-block;
+        background: rgba(129, 199, 132, 0.1); /* 淡淡的薄荷绿 */
+        color: #2e7d32; /* 深绿色文字 */
+        padding: 2px 12px;
+        border-radius: 20px; /* 完美的药丸圆角 */
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px solid rgba(129, 199, 132, 0.2); /* 浅绿边框 */
+        transition: all 0.3s ease;
+        line-height: 1.5;
+    }
+
+    /* 3. 悬停效果 */
+    .tag-link:hover .tag-item {
+        background: #81c784; /* 变成实心绿 */
+        color: white !important;
+        transform: translateY(-1px); /* 微小的上浮感 */
+        box-shadow: 0 4px 8px rgba(129, 199, 132, 0.3);
+    }
+
+    /* 针对“无标签”状态的特殊样式 */
+    .no-tag {
+        background: #f5f5f5 !important;
+        color: #aaa !important;
+        border: 1px solid #eee !important;
+    }
+
+    /* 你还可以给卡片加个特殊的边缘效果 */
+    .blog-card {
+        border-bottom: 4px solid transparent;
+    }
+
+    .blog-card:hover {
+        border-bottom: 4px solid #81c784;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom: 30px; text-align: center;">
+    <h1 style="color: #333; font-size: 2.5em; margin-bottom: 10px;">探索有趣的思想</h1>
+    <p style="color: #888;">欢迎来到 LocalBlog 本地博客系统</p>
+</div>
+
+
+<!-- 文章流布局 -->
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px;">
+    {% for article in articles %}
+    <div class="card"
+         style="padding: 0; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.3s;">
+        <!-- 文章预览图（可选，这里用随机色块代替） -->
+        <div style="height: 180px; background: #eee; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            {% if article.cover_url %}
+            <img src="{{ article.cover_url }}" style="width: 100%; height: 100%; object-fit: cover;">
+            {% else %}
+            <!-- 如果没有封面，显示标题第一个字作为占位符 -->
+            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); display: flex; align-items: center; justify-content: center;">
+                <span style="font-size: 60px; color: rgba(255,255,255,0.8);">{{ article.title[0] }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div style="padding: 20px; flex-grow: 1;">
+            <!-- 分类 -->
+            <div class="tag-row" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                {% if article.tags %}
+                {% for tag in article.tags %}
+                <a href="{{ url_for('tag_filter', user_id=article.author.id, tag_id=tag.id) }}" class="tag-link">
+                    <span class="tag-item">#{{ tag.name }}</span>
+                </a>
+                {% endfor %}
+                {% else %}
+                <span class="tag-item no-tag">#无标签</span>
+                {% endif %}
+            </div>
+
+            <h2 class="card-title">
+                <a href="{{ url_for('view_article', article_id=article.id) }}"
+                   style="text-decoration: none; color: #333;">
+                    {{ article.title }}
+                </a>
+            </h2>
+
+            <!-- 简介预览（截取前100字） -->
+            <p style="color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 20px; height: 68px; overflow: hidden;">
+                {% if article.summary %}
+                {{ article.summary }}
+                {% else %}
+                {# 如果没有手动摘要，自动截取并简单过滤一下常见符号 #}
+                {{ article.content[:150] | striptags | replace('#','') | replace('*','') | replace('![]()','') }}...
+                {% endif %}
+            </p>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 15px; margin-top: auto;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <img src="{{ article.author.avatar_url }}" style="width: 25px; height: 25px; border-radius: 50%;">
+                    <a href="{{ url_for('public_profile', user_id=article.author.id) }}"
+                       style="text-decoration:none; color:#555;">
+                        {{ article.author.nickname or article.author.username }}
+                    </a>
+                </div>
+                <span style="font-size: 12px; color: #999;">{{ article.update_time.strftime('%Y-%m-%d') }}</span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div style="grid-column: 1/-1; text-align: center; padding: 100px; color: #999;">
+        目前还没有发布的文章哦~
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+    .card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+    }
+</style>
+
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div style="margin-bottom: 20px;">
+    <h2 style="margin:0; color: #546e7a;">{{ target_user.nickname or target_user.username }} 的个人空间</h2>
+</div>
+
+<!-- 1. 个人资料展示区 (只读) -->
+<div class="card">
+    <div style="display: flex; gap: 40px; align-items: center;">
+        <!-- 头像 -->
+        <div style="text-align: center;">
+            <img src="{{ target_user.avatar_url }}"
+                 style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); object-fit: cover;">
+            <div style="margin-top:10px; color:#81c784; font-weight:bold;">@{{ target_user.username }}</div>
+        </div>
+
+        <!-- 详细资料 -->
+        <div style="flex: 1;">
+            <div style="display: flex; gap: 30px; margin-bottom: 15px;">
+                <div>
+                    <label style="font-size: 12px; color: #aaa;">昵称</label>
+                    <div style="font-size: 18px; font-weight: 600; color:#444;">{{ target_user.nickname or '未设置' }}
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size: 12px; color: #aaa;">性别</label>
+                    <div style="font-size: 16px; color:#444;">{{ target_user.gender or '保密' }}</div>
+                </div>
+                <div>
+                    <label style="font-size: 12px; color: #aaa;">最近活动</label>
+                    <div style="font-size: 14px; color:#666;">
+                        {{ target_user.last_login.strftime('%Y-%m-%d %H:%M') if target_user.last_login else '很久以前'
+                        }}
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 12px; color: #aaa;">代码仓库</label>
+                <div>
+                    {% if target_user.repo_link %}
+                    <a href="{{ target_user.repo_link }}" target="_blank"
+                       style="color: #81c784; text-decoration: none;">{{ target_user.repo_link }}</a>
+                    {% else %}
+                    <span style="color:#ccc;">暂无链接</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label style="font-size: 12px; color: #aaa;">个人简介</label>
+                <div style="background: #f9fbf9; padding: 15px; border-radius: 10px; color: #546e7a; line-height: 1.6; border-left: 4px solid #c8e6c9;margin-top: 15px">
+                    {{ target_user.bio or '这个人很懒，什么都没留下...' }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. 统计数据 -->
+<div style="display: flex; gap: 20px; margin-bottom: 30px;">
+    <div class="card" style="flex:1; margin:0; text-align:center; padding: 15px; border-top: 3px solid #81c784;">
+        <h3 style="margin:0; font-size:13px; color:#999;">公开文章</h3>
+        <div style="font-size:24px; font-weight:bold; color:#2e7d32;">{{ article_count }}</div>
+    </div>
+    <div class="card" onclick="window.location.href='{{ url_for('user_archive', user_id=target_user.id) }}'"
+         style="cursor:pointer; flex:1; ...">
+        <h3 style="margin:0; font-size:13px; color:#999;">分类</h3>
+        <div style="font-size:24px; font-weight:bold; color:#546e7a;">{{ category_count }}</div>
+    </div>
+    <div class="card" onclick="window.location.href='{{ url_for('user_archive', user_id=target_user.id) }}'"
+         style="cursor:pointer; flex:1; ...">
+        <h3 style="margin:0; font-size:13px; color:#999;">标签</h3>
+        <div style="font-size:24px; font-weight:bold; color:#546e7a;">{{ tag_count }}</div>
+    </div>
+</div>
+
+<!-- 3. 文章列表 (纯净版) -->
+<div class="card" style="padding: 20px;">
+    <h3 style="font-size: 16px; margin-bottom: 20px; color: #546e7a;">发布的文章</h3>
+    <table style="width:100%; border-collapse: collapse;">
+        <thead>
+        <tr style="text-align:left; border-bottom: 1px solid #eee; color: #999; font-size: 13px;">
+            <th style="padding:10px;">标题</th>
+            <th style="padding:10px;">标签</th>
+            <th style="padding:10px; text-align:right;">发布日期</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for p in articles %}
+        <tr style="border-bottom: 1px solid #f9fbf9;">
+            <td style="padding:15px 10px;">
+                <a href="{{ url_for('view_article', article_id=p.id) }}"
+                   style="text-decoration:none; color:#2c3e50; font-weight:600;">{{ p.title }}</a>
+            </td>
+            <td>
+                {% for t in p.tags %}
+                <span style="font-size:11px; color:#81c784; background:rgba(129,199,132,0.1); padding:2px 6px; border-radius:4px; margin-right:4px;">#{{ t.name }}</span>
+                {% endfor %}
+            </td>
+            <td style="padding:15px 10px; text-align:right; color:#999; font-size:13px;">
+                {{ p.update_time.strftime('%Y-%m-%d') }}
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="3" style="text-align:center; padding:40px; color:#ccc;">对方还没有发布任何文章</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

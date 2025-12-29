@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="max-width: 400px; margin: 80px auto;" class="card">
+    <h2 style="text-align: center; margin-bottom: 30px;">用户登录</h2>
+    <form method="POST">
+        <div style="margin-bottom: 20px;">
+            <label style="font-size: 12px; color: #666;">用户名</label>
+            <input type="text" name="username" class="modern-input" required>
+        </div>
+        <div style="margin-bottom: 30px;">
+            <label style="font-size: 12px; color: #666;">密码</label>
+            <input type="password" name="password" class="modern-input" required>
+        </div>
+        <button type="submit" class="btn btn-block" style="width: 100%; padding: 12px;">登录</button>
+        <p style="text-align:center; font-size:13px; margin-top:20px; color:#999;">
+            还没有账号？ <a href="{{ url_for('register') }}" style="color: #4285f4;">立即注册</a>
+        </p>
+    </form>
+</div>
+{% endblock %}

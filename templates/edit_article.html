@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+{% block content %}
+<!-- 1. 引入 Editor.md CSS 和 Cropper CSS -->
+<link rel="stylesheet" href="{{ url_for('static', filename='editormd/css/editormd.min.css') }}"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+
+<style>
+    .writing-container {
+        padding: 10px 20px;
+    }
+
+    .title-wrapper {
+        margin-bottom: 20px;
+    }
+
+    .title-input {
+        width: 100%;
+        border: none;
+        border-bottom: 2px solid #eee;
+        font-size: 32px;
+        font-weight: 700;
+        padding: 10px 0;
+        outline: none;
+        color: #333;
+        transition: border-color 0.3s;
+    }
+
+    .title-input:focus {
+        border-bottom-color: #4285f4;
+    }
+
+    /* 封面与元数据布局 */
+    .meta-container {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 25px;
+        align-items: flex-start;
+    }
+
+    .cover-upload-box {
+        width: 320px;
+        height: 180px;
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        overflow: hidden;
+        background: #fcfcfc;
+        position: relative;
+        transition: border-color 0.3s;
+    }
+
+    .cover-upload-box:hover {
+        border-color: #4285f4;
+    }
+
+    .cover-preview-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    .meta-inputs {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .input-item {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .input-item label {
+        font-size: 13px;
+        color: #888;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .modern-input {
+        border: 1px solid #e0e0e0;
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 14px;
+        background: #fcfcfc;
+        transition: all 0.3s;
+        outline: none;
+    }
+
+    .modern-input:focus {
+        border-color: #4285f4;
+        background: #fff;
+        box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+    }
+
+    #article-editor {
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #ddd;
+    }
+
+    .action-bar {
+        margin-top: 20px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+    }
+
+    /* 裁剪弹窗样式 */
+    #cropper-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        width: 800px;
+        max-width: 95%;
+    }
+
+    .cropper-wrapper {
+        width: 100%;
+        height: 450px;
+        background: #333;
+        overflow: hidden;
+        border-radius: 4px;
+    }
+</style>
+
+<div class="writing-container">
+    <h2 style="color: #666; font-weight: 400;">
+        {{ '编辑草稿' if article.is_draft else '编辑已发布文章' }}
+    </h2>
+
+    <form id="article-form" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="post_status" id="post-status"
+               value="{{ 'draft' if article.is_draft else 'published' }}">
+
+        <!-- 标题区域 -->
+        <div class="title-wrapper">
+            <input type="text" name="title" id="article-title" class="title-input" placeholder="请输入文章标题..."
+                   value="{{ article.title }}" required>
+        </div>
+
+        <!-- 封面与元数据区域 -->
+        <div class="meta-container">
+            <div class="input-item">
+                <label>文章封面 (16:9 裁剪)</label>
+                <div class="cover-upload-box" onclick="document.getElementById('cover-input').click()">
+                    {% if article.cover_url %}
+                    <img id="cover-preview" src="{{ article.cover_url }}" class="cover-preview-img">
+                    <div id="upload-placeholder" style="display: none; text-align: center; color: #aaa;">
+                        <span style="font-size: 24px;">+</span><br><span style="font-size: 12px;">更换封面</span>
+                    </div>
+                    {% else %}
+                    <img id="cover-preview" src="" class="cover-preview-img" style="display: none;">
+                    <div id="upload-placeholder" style="text-align: center; color: #aaa;">
+                        <span style="font-size: 24px;">+</span><br><span style="font-size: 12px;">上传封面</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <!-- 真正的选择文件框 -->
+                <input type="file" id="cover-input" name="cover_file" hidden accept="image/*">
+            </div>
+
+            <div class="meta-inputs">
+                <div class="input-item">
+                    <label><i class="fa fa-folder-open"></i> 文章分类</label>
+                    <input type="text" name="category" list="cl" class="modern-input"
+                           value="{{ article.category.name if article.category else '' }}">
+                    <datalist id="cl">{% for c in categories %}
+                        <option value="{{c.name}}">{% endfor %}
+                    </datalist>
+                </div>
+                <div class="input-item">
+                    <label><i class="fa fa-tags"></i> 文章标签</label>
+                    <input type="text" name="tags" class="modern-input" value="{{ tag_str }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- 摘要区域 -->
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label style="font-size: 13px; color: #888; font-weight: 600;">文章摘要 (展示在首页卡片上)</label>
+            <textarea name="summary" class="modern-input" style="height: 70px; resize: none; margin-top: 8px;">{{ article.summary if article.summary else '' }}</textarea>
+        </div>
+
+        <!-- 编辑器 -->
+        <div id="article-editor">
+            <textarea name="content" style="display:none;">{{ article.content }}</textarea>
+        </div>
+
+        <div class="action-bar">
+            {% if article.is_draft %}
+            <button type="button" class="btn" style="background:#f4f4f4; color:#666;" onclick="checkDraft()">
+                更新草稿并返回
+            </button>
+            <button type="submit" class="btn" style="background:#28a745; padding: 10px 40px; color: white;"
+                    onclick="document.getElementById('post-status').value='published'">正式发布
+            </button>
+            {% else %}
+            <button type="button" class="btn" style="background:#f4f4f4; color:#666;"
+                    onclick="window.location.href='{{ url_for('dashboard') }}'">取消修改
+            </button>
+            <button type="submit" class="btn" style="background:#4285f4; padding: 10px 40px; color: white;"
+                    onclick="document.getElementById('post-status').value='published'">保存修改
+            </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- 裁剪弹窗 HTML -->
+<div id="cropper-modal">
+    <div class="modal-content">
+        <h3 style="margin-top:0;">裁剪封面图片</h3>
+        <div class="cropper-wrapper">
+            <img id="cropper-image-temp">
+        </div>
+        <div style="margin-top:20px; display:flex; justify-content:flex-end; gap:10px;">
+            <button class="btn" style="background:#999;" onclick="closeCropper()">取消</button>
+            <button class="btn" id="confirm-crop-btn">确定裁剪</button>
+        </div>
+    </div>
+</div>
+
+<!-- 脚本部分 -->
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="{{ url_for('static', filename='editormd/editormd.min.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<script>
+    var editor;
+    var cropper;
+    const coverInput = document.getElementById('cover-input');
+    const cropperModal = document.getElementById('cropper-modal');
+    const cropperImage = document.getElementById('cropper-image-temp');
+
+    $(function () {
+        editor = editormd("article-editor", {
+            width: "100%", height: 600, path: "{{ url_for('static', filename='editormd/lib/') }}",
+            saveHTMLToTextarea: true, emoji: true, imageUpload: true,
+            imageUploadURL: "{{ url_for('upload_article_img') }}"
+        });
+    });
+
+    // 1. 选择图片后触发
+    coverInput.addEventListener('change', function (e) {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                cropperImage.src = event.target.result;
+                cropperModal.style.display = 'flex';
+
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(cropperImage, {
+                    aspectRatio: 16 / 9,
+                    viewMode: 1,
+                    background: false
+                });
+            };
+            reader.readAsDataURL(files[0]);
+        }
+    });
+
+    // 2. 确认裁剪
+    document.getElementById('confirm-crop-btn').addEventListener('click', function () {
+        if (!cropper) return;
+        const canvas = cropper.getCroppedCanvas({width: 800, height: 450});
+
+        canvas.toBlob(function (blob) {
+            // 更新页面上的封面预览
+            const previewUrl = URL.createObjectURL(blob);
+            document.getElementById('cover-preview').src = previewUrl;
+            document.getElementById('cover-preview').style.display = 'block';
+            document.getElementById('upload-placeholder').style.display = 'none';
+
+            // 【核心】将裁剪后的 Blob 塞回 input 框
+            let file = new File([blob], "cover.jpg", {type: "image/jpeg"});
+            let container = new DataTransfer();
+            container.items.add(file);
+            coverInput.files = container.files;
+
+            closeCropper();
+        }, 'image/jpeg');
+    });
+
+    function closeCropper() {
+        cropperModal.style.display = 'none';
+        if (!document.getElementById('cover-preview').src) {
+            coverInput.value = ''; // 如果没有预览图，清空已选，防止出错
+        }
+    }
+
+    function checkDraft() {
+        document.getElementById('post-status').value = 'draft';
+        document.getElementById('article-form').submit();
+    }
+</script>
+{% endblock %}

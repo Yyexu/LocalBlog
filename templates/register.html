@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="max-width: 400px; margin: 60px auto;" class="card">
+    <!-- 标题部分 -->
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h2 style="margin: 0 0 10px 0; color: #333;">创建新账号</h2>
+        <p style="font-size: 14px; color: #888; margin: 0;">加入 LocalBlog，开启你的本地写作之旅</p>
+    </div>
+
+    <!-- 注册表单 -->
+    <form method="POST">
+        <div style="margin-bottom: 20px;">
+            <label style="font-size: 12px; color: #666; font-weight: 600; text-transform: uppercase;">用户名</label>
+            <input type="text" name="username" class="modern-input" placeholder="设置你的登录账号" required>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label style="font-size: 12px; color: #666; font-weight: 600; text-transform: uppercase;">设置密码</label>
+            <input type="password" name="password" class="modern-input" placeholder="请输入 6 位以上密码" required>
+        </div>
+
+        <!-- 注册按钮 -->
+        <button type="submit" class="btn btn-block"
+                style="width: 100%; padding: 12px; font-weight: 600; letter-spacing: 1px;">
+            立即注册
+        </button>
+
+        <!-- 底部引导链接 -->
+        <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="font-size: 13px; color: #999; margin: 0;">
+                已经有账号了？
+                <a href="{{ url_for('login') }}" style="color: #4285f4; text-decoration: none; font-weight: 600;">
+                    直接登录
+                </a>
+            </p>
+        </div>
+    </form>
+</div>
+
+<style>
+    /* 针对注册页面的微调：让标题更有设计感 */
+    .card h2 {
+        position: relative;
+        display: inline-block;
+    }
+
+    /* 聚焦时稍微改变按钮颜色，增加交互感 */
+    .btn:active {
+        transform: scale(0.98);
+        filter: brightness(0.9);
+    }
+</style>
+{% endblock %}

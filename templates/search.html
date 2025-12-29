@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div style="max-width: 800px; margin: 0 auto;">
+    <!-- 1. 搜索表单区域 -->
+    <div class="card" style="padding: 40px; text-align: center; border-bottom: 4px solid #81c784;">
+        <h2 style="margin-bottom: 25px; color: #546e7a;">搜索你感兴趣的内容</h2>
+
+        <form action="{{ url_for('search') }}" method="GET"
+              style="display: flex; flex-direction: column; gap: 20px; align-items: center;">
+            <!-- 搜索框 -->
+            <div style="width: 100%; max-width: 600px; position: relative;">
+                <input type="text" name="q" value="{{ query }}" class="modern-input"
+                       placeholder="输入关键词..."
+                       style="padding: 15px 20px; font-size: 16px; border-radius: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <button type="submit" class="btn"
+                        style="position: absolute; right: 5px; top: 5px; border-radius: 25px; padding: 10px 25px;">搜索
+                </button>
+            </div>
+
+            <!-- 搜索标准选择 -->
+            <div style="display: flex; gap: 20px;">
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px; color: #666;">
+                    <input type="radio" name="type" value="article" {% if search_type== 'article' %}checked{% endif %}>
+                    搜文章
+                </label>
+                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px; color: #666;">
+                    <input type="radio" name="type" value="user" {% if search_type== 'user' %}checked{% endif %}> 搜作者
+                </label>
+            </div>
+        </form>
+    </div>
+
+    <!-- 2. 结果展示区域 -->
+    <div style="margin-top: 40px;">
+        {% if query %}
+        <p style="color: #999; margin-bottom: 20px;">找到关于 “{{ query }}” 的 {{ results|length }} 条结果：</p>
+
+        {% if search_type == 'article' %}
+        <!-- 文章结果列表：复用之前的网格布局（可以改为列表式更清晰） -->
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            {% for article in results %}
+            <div class="card" style="padding: 20px; display: flex; gap: 20px; align-items: center; transition: 0.3s;"
+                 onmouseover="this.style.transform='translateX(10px)'"
+                 onmouseout="this.style.transform='translateX(0)'">
+                <img src="{{ article.cover_url or '/static/images/default_cover.png' }}"
+                     style="width: 120px; height: 80px; object-fit: cover; border-radius: 8px;">
+                <div style="flex: 1;">
+                    <h3 style="margin: 0 0 5px 0;">
+                        <a href="{{ url_for('view_article', article_id=article.id) }}"
+                           style="text-decoration: none; color: #333;">{{ article.title }}</a>
+                    </h3>
+                    <div style="font-size: 13px; color: #999;">作者：{{ article.author.nickname or
+                        article.author.username }} | {{ article.update_time.strftime('%Y-%m-%d') }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- 用户结果列表 -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;">
+            {% for user in results %}
+            <div class="card" style="text-align: center; padding: 25px; transition: 0.3s;"
+                 onmouseover="this.style.transform='translateY(-5px)'"
+                 onmouseout="this.style.transform='translateY(0)'">
+                <img src="{{ user.avatar_url }}"
+                     style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #f1f8e9; margin-bottom: 10px;">
+                <div style="font-weight: bold; color: #333;">{{ user.nickname or user.username }}</div>
+                <div style="font-size: 12px; color: #aaa; margin-bottom: 15px;">@{{ user.username }}</div>
+                <a href="{{ url_for('public_profile', user_id=user.id) }}" class="btn"
+                   style="padding: 5px 15px; font-size: 12px; background: transparent; color: #81c784 !important; border: 1px solid #81c784;">查看主页</a>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not results %}
+        <div style="text-align: center; padding: 50px; color: #ccc;">
+            <p style="font-size: 50px; margin-bottom: 10px;">🏜️</p>
+            <p>没找到相关内容，换个词试试？</p>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* 搜索页单选框颜色微调 */
+    input[type="radio"] {
+        accent-color: #81c784;
+    }
+</style>
+
+{% endblock %}

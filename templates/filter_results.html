@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="margin-bottom: 30px;">
+    <h2 style="color: #546e7a;">
+        <span style="color: #81c784;">{{ type }}：</span>{{ filter_name }}
+    </h2>
+    <p style="color: #999;">来自 {{ user.nickname or user.username }} 的分享</p>
+</div>
+
+<!-- 复用你之前的网格布局 -->
+<div class="blog-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px;">
+    {% for article in articles %}
+    <div class="blog-card"
+         style="background: white; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #eee;">
+        <div style="height: 180px;">
+            {% if article.cover_url %}
+            <img src="{{ article.cover_url }}" style="width:100%; height:100%; object-fit:cover;">
+            {% else %}
+            <div style="width:100%; height:100%; background:#e3f2fd; display:flex; align-items:center; justify-content:center; font-size:40px; color:white;">
+                {{ article.title[0] }}
+            </div>
+            {% endif %}
+        </div>
+        <div style="padding: 20px; flex: 1; display: flex; flex-direction: column;">
+            <h2 style="margin: 0 0 10px 0; font-size: 1.2rem;">
+                <a href="{{ url_for('view_article', article_id=article.id) }}"
+                   style="text-decoration: none; color: #333;">{{ article.title }}</a>
+            </h2>
+            <p style="color: #666; font-size: 14px; flex: 1;">{{ article.summary or article.content[:80] | striptags
+                }}...</p>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #f0f0f0; font-size: 12px; color: #aaa; text-align: right;">
+                {{ article.update_time.strftime('%Y-%m-%d') }}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
