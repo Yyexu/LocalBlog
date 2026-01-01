@@ -191,6 +191,20 @@
         background: #1976d2 !important;
         color: white !important;
     }
+
+    /* 评论项鼠标悬停效果 */
+    .comment-item {
+        transition: background 0.3s;
+    }
+    .comment-item:hover {
+        background: #fcfdfc;
+    }
+
+    /* 评论框焦点样式 */
+    textarea.modern-input:focus {
+        border-color: #81c784;
+        box-shadow: 0 0 0 3px rgba(129, 199, 132, 0.1);
+    }
 </style>
 
 <div class="detail-wrapper">
@@ -268,6 +282,67 @@
             <textarea style="display:none;">{{ article.content }}</textarea>
         </div>
     </div>
+
+    <div class="article-card" style="margin-top: 30px;">
+        <h3 style="color: #2e7d32; border-bottom: 2px solid #f1f8e9; padding-bottom: 10px;">
+            评论交流 ({{ article.comments|length }})
+        </h3>
+
+        <!-- 1. 发表评论表单 -->
+        <div style="margin: 20px 0;">
+            {% if current_user.is_authenticated %}
+                <form action="{{ url_for('post_comment', article_id=article.id) }}" method="POST">
+                    <textarea name="content" class="modern-input" style="height: 100px; resize: none;" placeholder="说点什么吧..."></textarea>
+                    <div style="text-align: right; margin-top: 10px;">
+                        <button type="submit" class="btn">发表评论</button>
+                    </div>
+                </form>
+            {% else %}
+                <div style="background: #f9fbf9; padding: 20px; border-radius: 12px; text-align: center; border: 1px dashed #c8e6c9;">
+                    <p style="color: #888; font-size: 14px;">想要发表评论？请先登录</p>
+                    <a href="{{ url_for('login') }}" class="btn" style="padding: 8px 25px;">立即登录</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- 2. 评论列表展示 -->
+        <div style="margin-top: 30px;">
+            {% if article.comments %}
+                {% for comment in article.comments|sort(attribute='timestamp', reverse=True) %}
+            <div class="comment-item" style="display: flex; gap: 15px; padding: 15px 0; border-bottom: 1px solid #f9fbf9;">
+
+                    <!-- 1. 点击头像进入个人主页 -->
+                    <a href="{{ url_for('public_profile', user_id=comment.author.id) }}" title="查看个人主页">
+                        <img src="{{ comment.author.avatar_url }}"
+                            style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.3s;"
+                            onmouseover="this.style.transform='scale(1.1)'"
+                            onmouseout="this.style.transform='scale(1)'">
+                    </a>
+
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+
+                            <!-- 2. 点击名字进入个人主页 -->
+                            <a href="{{ url_for('public_profile', user_id=comment.author.id) }}"
+                            style="text-decoration: none; color: #444; transition: 0.3s;"
+                            onmouseover="this.style.color='#81c784'"
+                            onmouseout="this.style.color='#444'">
+                                <strong style="font-size: 14px;">{{ comment.author.nickname or comment.author.username }}</strong>
+                            </a>
+
+                            <span style="color: #ccc; font-size: 12px;">{{ comment.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+
+                        <div style="color: #546e7a; font-size: 14px; line-height: 1.6; background: #fcfdfc; padding: 10px; border-radius: 8px;">
+                            {{ comment.content }}
+                        </div>
+                    </div>
+            </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align: center; color: #ccc; padding: 40px;">暂无评论，快来抢沙发吧！</p>
+            {% endif %}
+        </div>
 
     <!-- 右侧：悬浮目录 -->
     <div class="toc-container">

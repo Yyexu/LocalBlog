@@ -55,6 +55,7 @@ class Article(db.Model):
 
     category = db.relationship('Category', backref='posts')
     tags = db.relationship('Tag', secondary=article_tags, backref=db.backref('articles', lazy='dynamic'))
+    comments = db.relationship('Comment', backref='target_article', lazy=True, cascade="all, delete-orphan")
 
     @property
     def word_count(self):
@@ -93,3 +94,18 @@ class Article(db.Model):
         # 中文阅读速度通常为 300-500 字/分钟
         minutes = round(count / 400)
         return minutes if minutes > 0 else 1
+
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.now)  # 评论时间
+
+    # 外键关联
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    article_id = db.Column(db.Integer, db.ForeignKey('article.id'), nullable=False)
+
+    # 为了方便查询，给 Article 和 User 反向建立关系
+    # 这样可以用 article.comments 拿到所有评论
+    author = db.relationship('User', backref=db.backref('comments', lazy=True))
+
+
