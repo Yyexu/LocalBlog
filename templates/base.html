@@ -7,6 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
     <title>LocalBlog | 本地博客系统</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
     <style>
         /* 1. 重新定义薄荷绿变量 */
         :root {
@@ -138,7 +139,7 @@
         /* 按钮 */
         .btn {
             background: #81c784; /* 固体叶绿色 */
-            color: white !important; /* 强制白色文字 */
+            color: white; /* 强制白色文字 */
             border: none;
             padding: 10px 25px;
             border-radius: 10px; /* 圆润一点 */
@@ -231,38 +232,37 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    // 当页面加载完成时，检查是否有 Flash 消息
-    document.addEventListener('DOMContentLoaded', function () {
-        {%
-            with messages = get_flashed_messages(with_categories = true) %
-        }
-        {%
-            if messages %
-        }
-        {%
-            for category, message in messages %
-        }
-        Swal.fire({
-            icon: '{{ "success" if category == "message" or category == "success" else "error" }}',
-            title: '系统提示',
-            text: '{{ message }}',
-            timer: 2500,
-            showConfirmButton: false,
-            position: 'top-end',
-            toast: true,
-            showClass: {popup: 'animate__animated animate__fadeInRight'},
-            hideClass: {popup: 'animate__animated animate__fadeOutRight'}
+document.addEventListener('DOMContentLoaded', function () {
+    {% with messages = get_flashed_messages(with_categories = true) %}
+    {% if messages %}
+        // 统一处理所有flash消息，避免循环生成重复代码
+        const flashMessages = {{ messages|tojson }}; // 关键：用tojson安全转义所有特殊字符
+        flashMessages.forEach(([category, message]) => {
+            // 健壮的icon映射：适配SweetAlert2所有内置icon
+            const iconMap = {
+                'success': 'success',
+                'message': 'success', // 兼容原逻辑
+                'error': 'error',
+                'warning': 'warning', // 扩展支持
+                'info': 'info'        // 扩展支持
+            };
+            const icon = iconMap[category] || 'info'; // 默认值兜底
+
+            Swal.fire({
+                icon: icon,
+                title: '系统提示',
+                text: message,
+                timer: 2500,
+                showConfirmButton: false,
+                position: 'top-end',
+                toast: true,
+                showClass: { popup: 'animate__animated animate__fadeInRight' },
+                hideClass: { popup: 'animate__animated animate__fadeOutRight' }
+            });
         });
-        {%
-            endfor %
-        }
-        {%
-            endif %
-        }
-        {%
-            endwith %
-        }
-    });
+    {% endif %}
+    {% endwith %}
+});
 </script>
 
 </body>

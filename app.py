@@ -1,5 +1,5 @@
 from flask import Flask, render_template, redirect, url_for, request, flash
-from models import db, User, Article, Category, Tag
+from models import db, User, Article, Category, Tag, Comment
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 import os
 import requests
@@ -446,6 +446,25 @@ def ai_summarize(article_id):
         return {"success": True, "summary": summary}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+
+@app.route('/article/<int:article_id>/comment', methods=['POST'])
+@login_required
+def post_comment(article_id):
+    content = request.form.get('content')
+    if not content or content.strip() == "":
+        flash("评论内容不能为空", "error")
+        return redirect(url_for('view_article', article_id=article_id))
+
+    new_comment = Comment(
+        content=content,
+        user_id=current_user.id,
+        article_id=article_id
+    )
+    db.session.add(new_comment)
+    db.session.commit()
+    flash("评论发表成功！", "success")
+    return redirect(url_for('view_article', article_id=article_id))
 
 
 if __name__ == '__main__':
