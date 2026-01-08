@@ -2,6 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime
 import re
+import markdown
 
 db = SQLAlchemy()
 
@@ -94,6 +95,16 @@ class Article(db.Model):
         # 中文阅读速度通常为 300-500 字/分钟
         minutes = round(count / 400)
         return minutes if minutes > 0 else 1
+
+    @property
+    def content_html(self):
+        """后端预渲染：将 Markdown 转为 HTML"""
+        if self.content:
+            # 开启常用的 Markdown 扩展：表格、代码高亮、目录、自动链接
+            exts = ['markdown.extensions.extra', 'markdown.extensions.codehilite',
+                    'markdown.extensions.toc', 'markdown.extensions.fenced_code']
+            return markdown.markdown(self.content, extensions=exts)
+        return ""
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
